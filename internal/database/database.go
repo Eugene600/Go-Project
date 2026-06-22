@@ -1,21 +1,41 @@
 package database
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
+	"log"
+	"net/url"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/Eugene600/Go-Project/internal/config"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func Connect(connString string) (*pgxpool.Pool, error) {
-	db, err := pgxpool.New(context.Background(), connString)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create connection pool: %w", err)
+func Connect() (*sql.DB, error) {
+	if err := config.Load(); err != nil {
+		return nil, err
 	}
 
-	if err := db.Ping(context.Background()); err != nil {
-		return nil, fmt.Errorf("unable to ping database %w", err)
+	connString := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s",
+		config.Cfg.Database.User,
+		url.QueryEscape(config.Cfg.Database.Password),
+		config.Cfg.Database.Host,
+		config.Cfg.Database.Port,
+		config.Cfg.Database.Name,
+	)
+
+	log.Println("Connection string is ", connString)
+
+	db, err := sql.Open("pgx", connString)
+	if err != nil {
+		return nil, err
 	}
+
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	log.Println("Connected Successfully to DB")
 
 	return db, nil
 }
