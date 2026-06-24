@@ -9,6 +9,10 @@ import (
 )
 
 func main() {
+	if err := config.Load(); err != nil {
+		log.Fatal(err)
+	}
+	
 	handler := routes.SetRoutes()
 
 	server := &http.Server{

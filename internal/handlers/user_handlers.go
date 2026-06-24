@@ -16,8 +16,9 @@ func CreateUser(c *gin.Context) {
 
 	err := c.ShouldBindJSON(&reqData)
 	if err != nil {
+		log.Printf("Error from bad request: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"error": "Please enter all required fields",
 		})
 		return
 	}
@@ -63,13 +64,15 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.Printf("An Error occured creating user, %s", err.Error())
+		log.Printf("An Error occured commiting create user transaction, %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Something went wrong. Please try again",
 		})
 		return
 	}
 
-	c.Status(http.StatusCreated)
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "User Created Successfully",
+	})
 
 }

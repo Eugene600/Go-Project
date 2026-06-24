@@ -11,10 +11,6 @@ import (
 )
 
 func Connect() (*sql.DB, error) {
-	if err := config.Load(); err != nil {
-		return nil, err
-	}
-
 	connString := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s",
 		config.Cfg.Database.User,
