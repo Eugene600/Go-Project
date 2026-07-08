@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 
@@ -9,10 +10,12 @@ import (
 	"github.com/Eugene600/Go-Project/internal/dtos"
 	"github.com/Eugene600/Go-Project/internal/models"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func CreateUser(c *gin.Context) {
 	var reqData dtos.CreateUserRequest
+	var pgErr *pgconn.PgError
 
 	err := c.ShouldBindJSON(&reqData)
 	if err != nil {
@@ -47,13 +50,25 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if err := user.CreateUser(tx, c); err != nil {
-		tx.Rollback()
-		log.Printf("An Error occured creating user, %s", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Something went wrong. Please try again",
-		})
+		
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23505":
+				log.Printf("An Error occured creating user, %s", err.Error())
+				c.JSON(http.StatusConflict, gin.H{
+					"error": "Username already exists.",
+				})
+			default:
+				log.Printf("An Error occured creating user, %s", err.Error())
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Something went wrong. Please try again",
+				})
+			}
+		}
 		return
 	}
+
+	defer tx.Rollback()
 
 	if err := tx.Commit(); err != nil {
 		log.Printf("An Error occured commiting create user transaction, %s", err.Error())
