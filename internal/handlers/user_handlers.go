@@ -10,11 +10,12 @@ import (
 	"github.com/Eugene600/Go-Project/internal/dtos"
 	"github.com/Eugene600/Go-Project/internal/models"
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func CreateUser(c *gin.Context) {
-	var reqData dtos.CreateUserRequest
+	var reqData dtos.UserRequest
 	var pgErr *pgconn.PgError
 
 	err := c.ShouldBindJSON(&reqData)
@@ -185,6 +186,117 @@ func GetAllUsers(c *gin.Context) {
 			CreatedAt:   user.CreatedAt,
 			UpdatedAt:   user.UpdatedAt,
 		})
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func UpdateUser(c *gin.Context) {
+	var (
+		reqData dtos.UserRequest
+		pgErr   *pgconn.PgError
+	)
+
+	id, err := uuid.FromString(c.Param("id"))
+	if err != nil {
+		log.Printf("Error while updating user: Invalid user id")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user id.",
+		})
+		return
+	}
+
+	if err := c.ShouldBindJSON(&reqData); err != nil {
+		log.Printf("Error binding request: %v", err)
+
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Please enter all required fields.",
+		})
+		return
+	}
+
+	user := models.User{
+		Id:          id,
+		FirstName:   reqData.FirstName,
+		LastName:    reqData.LastName,
+		DateOfBirth: reqData.DateOfBirth,
+		UserName:    reqData.UserName,
+	}
+
+	if reqData.MiddleName != nil {
+		user.MiddleName = sql.NullString{
+			String: *reqData.MiddleName,
+			Valid:  true,
+		}
+	}
+
+	tx, err := database.DB.BeginTx(c, nil)
+	if err != nil {
+		log.Printf("Error beginning transaction: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	defer tx.Rollback()
+
+	if err := user.UpdateUser(tx, c); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "User not found.",
+			})
+			return
+		}
+
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case "23505":
+				c.JSON(http.StatusConflict, gin.H{
+					"error": "Username already exists.",
+				})
+			default:
+				log.Printf("Database error: %v", err)
+
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Something went wrong. Please try again.",
+				})
+			}
+			return
+		}
+
+		log.Printf("Error updating user: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Printf("Error committing transaction: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	var middleName *string
+	if user.MiddleName.Valid {
+		middleName = &user.MiddleName.String
+	}
+
+	response := dtos.UserResponse{
+		ID:          user.Id,
+		FirstName:   user.FirstName,
+		MiddleName:  middleName,
+		LastName:    user.LastName,
+		DateOfBirth: user.DateOfBirth,
+		UserName:    user.UserName,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
 	}
 
 	c.JSON(http.StatusOK, response)

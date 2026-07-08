@@ -19,5 +19,7 @@ func SetRoutes() http.Handler {
 
 	router.GET("/users", handlers.GetAllUsers)
 
+	router.PUT("/users/:id", handlers.UpdateUser)
+
 	return router
 }
