@@ -10,7 +10,9 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func Connect() (*sql.DB, error) {
+var DB *sql.DB
+
+func Connect() error {
 	connString := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s",
 		config.Cfg.Database.User,
@@ -22,16 +24,18 @@ func Connect() (*sql.DB, error) {
 
 	log.Println("Connection string is ", connString)
 
-	db, err := sql.Open("pgx", connString)
+	var err error
+
+	DB, err = sql.Open("pgx", connString)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if err := db.Ping(); err != nil {
-		return nil, err
+	if err := DB.Ping(); err != nil {
+		return err
 	}
 
 	log.Println("Connected Successfully to DB")
 
-	return db, nil
+	return nil
 }

@@ -37,15 +37,7 @@ func CreateUser(c *gin.Context) {
 		}
 	}
 
-	db, err := database.Connect()
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Something happened, please try again",
-		})
-	}
-
-	tx, err := db.BeginTx(c, nil)
+	tx, err := database.DB.BeginTx(c, nil)
 	if err != nil {
 		log.Printf("Error connecting to DB: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
