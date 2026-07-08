@@ -10,14 +10,14 @@ import (
 func SetRoutes() http.Handler {
 	router := gin.Default()
 
-	router.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
+	router.GET("/ping", handlers.Ping)
 
 	// USERS
 	router.POST("/users", handlers.CreateUser)
+
+	router.GET("/users/search", handlers.GetUserByUsername)
+
+	router.GET("/users", handlers.GetAllUsers)
 
 	return router
 }

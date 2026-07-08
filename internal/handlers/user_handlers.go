@@ -50,7 +50,7 @@ func CreateUser(c *gin.Context) {
 	}
 
 	if err := user.CreateUser(tx, c); err != nil {
-		
+
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case "23505":
@@ -81,5 +81,111 @@ func CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User Created Successfully",
 	})
+}
 
+func GetUserByUsername(c *gin.Context) {
+	username := c.Query("username")
+
+	if username == "" {
+		log.Printf("Error while getting user by username: Username query parameter missing")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "username query parameter is required",
+		})
+		return
+	}
+
+	tx, err := database.DB.BeginTx(c, nil)
+	if err != nil {
+		log.Printf("Error beginning transaction: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	defer tx.Rollback()
+
+	var user models.User
+
+	if err := user.GetUserByUsername(tx, c, username); err != nil {
+		log.Printf("Error retrieving user: %v", err)
+
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "User not found",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	var middleName *string
+	if user.MiddleName.Valid {
+		middleName = &user.MiddleName.String
+	}
+
+	response := dtos.UserResponse{
+		ID:          user.Id,
+		FirstName:   user.FirstName,
+		MiddleName:  middleName,
+		LastName:    user.LastName,
+		DateOfBirth: user.DateOfBirth,
+		UserName:    user.UserName,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func GetAllUsers(c *gin.Context) {
+	tx, err := database.DB.BeginTx(c, nil)
+	if err != nil {
+		log.Printf("Error beginning transaction: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again",
+		})
+		return
+	}
+
+	defer tx.Rollback()
+
+	users, err := models.GetAllUsers(tx, c)
+	if err != nil {
+		log.Printf("Error retrieving users: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	response := make([]dtos.UserResponse, 0, len(users))
+
+	for _, user := range users {
+		var middleName *string
+
+		if user.MiddleName.Valid {
+			middleName = &user.MiddleName.String
+		}
+
+		response = append(response, dtos.UserResponse{
+			ID:          user.Id,
+			FirstName:   user.FirstName,
+			MiddleName:  middleName,
+			LastName:    user.LastName,
+			DateOfBirth: user.DateOfBirth,
+			UserName:    user.UserName,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, response)
 }
