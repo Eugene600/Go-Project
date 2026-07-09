@@ -186,9 +186,18 @@ func DeleteUser(tx *sql.Tx, ctx context.Context, id uuid.UUID) error {
 	AND deleted_at IS NULL	
 	`
 
-	_, err := tx.ExecContext(ctx, query, id)
+	result, err := tx.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
 	}
 
 	return nil

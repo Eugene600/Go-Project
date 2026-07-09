@@ -253,6 +253,7 @@ func UpdateUser(c *gin.Context) {
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case "23505":
+				log.Println("Username already exists.")
 				c.JSON(http.StatusConflict, gin.H{
 					"error": "Username already exists.",
 				})
@@ -300,4 +301,57 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func DeleteUser(c *gin.Context) {
+	id, err := uuid.FromString(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user id.",
+		})
+		return
+	}
+
+	tx, err := database.DB.BeginTx(c, nil)
+	if err != nil {
+		log.Printf("Error beginning transaction: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	defer tx.Rollback()
+
+	if err := models.DeleteUser(tx, c, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Println("User not found when deleting user.")
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "User not found.",
+			})
+			return
+		}
+
+		log.Printf("Error deleting user: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Printf("Error committing transaction: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User deleted successfully.",
+	})
+
 }
