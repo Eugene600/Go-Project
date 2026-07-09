@@ -125,21 +125,7 @@ func GetUserByUsername(c *gin.Context) {
 		return
 	}
 
-	var middleName *string
-	if user.MiddleName.Valid {
-		middleName = &user.MiddleName.String
-	}
-
-	response := dtos.UserResponse{
-		ID:          user.Id,
-		FirstName:   user.FirstName,
-		MiddleName:  middleName,
-		LastName:    user.LastName,
-		DateOfBirth: user.DateOfBirth,
-		UserName:    user.UserName,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-	}
+	response := dtos.MappedUserResponse(user)
 
 	c.JSON(http.StatusOK, response)
 }
@@ -167,26 +153,7 @@ func GetAllUsers(c *gin.Context) {
 		return
 	}
 
-	response := make([]dtos.UserResponse, 0, len(users))
-
-	for _, user := range users {
-		var middleName *string
-
-		if user.MiddleName.Valid {
-			middleName = &user.MiddleName.String
-		}
-
-		response = append(response, dtos.UserResponse{
-			ID:          user.Id,
-			FirstName:   user.FirstName,
-			MiddleName:  middleName,
-			LastName:    user.LastName,
-			DateOfBirth: user.DateOfBirth,
-			UserName:    user.UserName,
-			CreatedAt:   user.CreatedAt,
-			UpdatedAt:   user.UpdatedAt,
-		})
-	}
+	response := dtos.MappedUserResponseList(users)
 
 	c.JSON(http.StatusOK, response)
 }
@@ -284,21 +251,7 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	var middleName *string
-	if user.MiddleName.Valid {
-		middleName = &user.MiddleName.String
-	}
-
-	response := dtos.UserResponse{
-		ID:          user.Id,
-		FirstName:   user.FirstName,
-		MiddleName:  middleName,
-		LastName:    user.LastName,
-		DateOfBirth: user.DateOfBirth,
-		UserName:    user.UserName,
-		CreatedAt:   user.CreatedAt,
-		UpdatedAt:   user.UpdatedAt,
-	}
+	response := dtos.MappedUserResponse(user)
 
 	c.JSON(http.StatusOK, response)
 }
@@ -353,5 +306,83 @@ func DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "User deleted successfully.",
 	})
+}
 
+func RecoverDeletedUser(c *gin.Context) {
+	id, err := uuid.FromString(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user id.",
+		})
+		return
+	}
+
+	tx, err := database.DB.BeginTx(c, nil)
+	if err != nil {
+		log.Printf("Error beginning transaction: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	defer tx.Rollback()
+
+	if err := models.RecoverDeletedUser(tx, c, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Deleted user not found.",
+			})
+			return
+		}
+
+		log.Printf("Error recovering user: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Printf("Error committing transaction: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User recovered successfully.",
+	})
+}
+
+func GetDeletedUsers(c *gin.Context) {
+	tx, err := database.DB.BeginTx(c, nil)
+	if err != nil {
+		log.Printf("Error beginning transaction: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	defer tx.Rollback()
+
+	users, err := models.GetDeletedUsers(tx, c)
+	if err != nil {
+		log.Printf("Error retrieving deleted users: %v", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Something went wrong. Please try again.",
+		})
+		return
+	}
+
+	response := dtos.MappedUserResponseList(users)
+
+	c.JSON(http.StatusOK, response)
 }

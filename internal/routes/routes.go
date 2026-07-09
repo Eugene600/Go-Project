@@ -23,5 +23,9 @@ func SetRoutes() http.Handler {
 
 	router.DELETE("/users/:id", handlers.DeleteUser)
 
+	router.PUT("/users/:id/recover", handlers.RecoverDeletedUser)
+
+	router.GET("/users/deleted", handlers.GetDeletedUsers)
+
 	return router
 }

@@ -91,6 +91,7 @@ func GetAllUsers(tx *sql.Tx, ctx context.Context) ([]User, error) {
 		updated_at,
 		deleted_at
 	FROM users
+	WHERE deleted_at IS NULL
 	`
 
 	rows, err := tx.QueryContext(ctx, query)
@@ -208,14 +209,77 @@ func RecoverDeletedUser(tx *sql.Tx, ctx context.Context, id uuid.UUID) error {
 	UPDATE users
 	SET
 		deleted_at = NULL,
+		updated_at = NOW()
 	WHERE id = $1
 	AND deleted_at IS NOT NULL	
 	`
 
-	_, err := tx.ExecContext(ctx, query, id)
+	result, err := tx.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
 
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
 	return nil
+}
+
+func GetDeletedUsers(tx *sql.Tx, ctx context.Context) ([]User, error) {
+	query := `
+	SELECT
+		id,
+		first_name,
+		middle_name,
+		last_name,
+		date_of_birth,
+		username,
+		created_at,
+		updated_at,
+		deleted_at
+	FROM users
+	WHERE deleted_at IS NOT NULL
+	`
+
+	rows, err := tx.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := []User{}
+
+	for rows.Next() {
+		var user User
+
+		err := rows.Scan(
+			&user.Id,
+			&user.FirstName,
+			&user.MiddleName,
+			&user.LastName,
+			&user.DateOfBirth,
+			&user.UserName,
+			&user.CreatedAt,
+			&user.UpdatedAt,
+			&user.DeletedAt,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
