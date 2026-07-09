@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"time"
 
 	"github.com/Eugene600/Go-Project/internal/config"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -30,6 +31,16 @@ func Connect() error {
 	if err != nil {
 		return err
 	}
+
+	DB.SetMaxOpenConns(config.Cfg.Database.MaxOpenConns)
+	DB.SetMaxIdleConns(config.Cfg.Database.MaxIdleConns)
+	DB.SetConnMaxLifetime(
+		time.Duration(config.Cfg.Database.ConnMaxLifetime) * time.Minute,
+	)
+
+	DB.SetConnMaxIdleTime(
+		time.Duration(config.Cfg.Database.ConnMaxIdleTime) * time.Minute,
+	)
 
 	if err := DB.Ping(); err != nil {
 		return err
