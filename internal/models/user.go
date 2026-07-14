@@ -9,15 +9,16 @@ import (
 )
 
 type User struct {
-	Id          uuid.UUID
-	FirstName   string
-	MiddleName  sql.NullString
-	LastName    string
-	DateOfBirth time.Time
-	UserName    string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	DeletedAt   sql.NullTime
+	Id           uuid.UUID
+	FirstName    string
+	MiddleName   sql.NullString
+	LastName     string
+	DateOfBirth  time.Time
+	UserName     string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    sql.NullTime
+	PasswordHash string
 }
 
 func (u *User) CreateUser(tx *sql.Tx, ctx context.Context) error {
@@ -27,9 +28,10 @@ func (u *User) CreateUser(tx *sql.Tx, ctx context.Context) error {
 		middle_name,
 		last_name,
 		date_of_birth,
-		username
+		username,
+		password_hash
 	)
-	VALUES ($1, $2, $3, $4, $5)
+	VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
 	_, err := tx.ExecContext(
@@ -40,6 +42,7 @@ func (u *User) CreateUser(tx *sql.Tx, ctx context.Context) error {
 		u.LastName,
 		u.DateOfBirth,
 		u.UserName,
+		u.PasswordHash,
 	)
 
 	if err != nil {

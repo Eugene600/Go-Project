@@ -1,29 +1,35 @@
 package main
 
 import (
-    "fmt"
-    "os"
+	"fmt"
+	"log"
+	"os"
 
-    "github.com/Eugene600/Go-Project/internal/database"
+	"github.com/Eugene600/Go-Project/internal/config"
+	"github.com/Eugene600/Go-Project/internal/database"
 )
 
 func main() {
-    if len(os.Args) < 2 {
-        fmt.Println("Usage: go run ./cmd/migrate [up|down|status]")
-        return
-    }
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: go run ./cmd/migrate [up|down|status]")
+		return
+	}
 
-    switch os.Args[1] {
-    case "up":
-        database.Migrate(database.MigrateUp)
+	if err := config.Load(); err != nil {
+		log.Fatal(err)
+	}
 
-    case "down":
-        database.Migrate(database.MigrateDown)
+	switch os.Args[1] {
+	case "up":
+		database.Migrate(database.MigrateUp)
 
-    case "status":
-        database.Migrate(database.MigrateStatus)
+	case "down":
+		database.Migrate(database.MigrateDown)
 
-    default:
-        fmt.Println("Unknown command")
-    }
+	case "status":
+		database.Migrate(database.MigrateStatus)
+
+	default:
+		fmt.Println("Unknown command")
+	}
 }
