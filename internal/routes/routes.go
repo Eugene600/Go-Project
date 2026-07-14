@@ -13,7 +13,7 @@ func SetRoutes() http.Handler {
 	router.GET("/ping", handlers.Ping)
 
 	//AUTH
-	router.POST("/auth/signup", handlers.SignUser)
+	router.POST("/auth/signup", handlers.SignUpUser)
 
 	// USERS
 	router.GET("/users/search", handlers.GetUserByUsername)

@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func SignUser(c *gin.Context) {
+func SignUpUser(c *gin.Context) {
 	var reqData dtos.SignUserRequest
 	var pgErr *pgconn.PgError
 
