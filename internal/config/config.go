@@ -26,6 +26,12 @@ type config struct {
 		Host string
 		Port string
 	}
+	Auth struct {
+		AccessTokenTTL  int
+		RefreshTokenTTL int
+		JwtSecret string
+		JwtIssuer string
+	}
 }
 
 func Load() error {
@@ -49,6 +55,12 @@ func Load() error {
 	//Server Configs
 	Cfg.Server.Host = getEnv("SERVER_HOST", "127.0.0.1:")
 	Cfg.Server.Port = getEnv("SERVER_PORT", "8080")
+
+	// Auth Configs
+	Cfg.Auth.AccessTokenTTL = getEnvAsInt("ACCESS_TOKEN_TTL_MINUTES", 3)
+	Cfg.Auth.RefreshTokenTTL = getEnvAsInt("REFRESH_TOKEN_TTL_DAYS", 3)
+	Cfg.Auth.JwtSecret = getEnv("JWT_SECRET", "")
+	Cfg.Auth.JwtIssuer = getEnv("JWT_ISSUER", "")
 
 	return nil
 }

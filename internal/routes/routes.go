@@ -15,6 +15,8 @@ func SetRoutes() http.Handler {
 	//AUTH
 	router.POST("/auth/signup", handlers.SignUpUser)
 
+	router.POST("/auth/login", handlers.LoginUser)
+
 	// USERS
 	router.GET("/users/search", handlers.GetUserByUsername)
 

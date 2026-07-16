@@ -32,9 +32,19 @@ func (u *User) CreateUser(tx *sql.Tx, ctx context.Context) error {
 		password_hash
 	)
 	VALUES ($1, $2, $3, $4, $5, $6)
+	RETURNING
+		id,
+		first_name,
+		middle_name,
+		last_name,
+		date_of_birth,
+		username,
+		created_at,
+		updated_at,
+		deleted_at
 	`
 
-	_, err := tx.ExecContext(
+	return tx.QueryRowContext(
 		ctx,
 		query,
 		u.FirstName,
@@ -43,13 +53,17 @@ func (u *User) CreateUser(tx *sql.Tx, ctx context.Context) error {
 		u.DateOfBirth,
 		u.UserName,
 		u.PasswordHash,
+	).Scan(
+		&u.Id,
+		&u.FirstName,
+		&u.MiddleName,
+		&u.LastName,
+		&u.DateOfBirth,
+		&u.UserName,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+		&u.DeletedAt,
 	)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (u *User) GetUserByUsername(tx *sql.Tx, ctx context.Context, username string) error {
@@ -63,7 +77,8 @@ func (u *User) GetUserByUsername(tx *sql.Tx, ctx context.Context, username strin
 		username,
 		created_at,
 		updated_at,
-		deleted_at
+		deleted_at,
+		password_hash
 	FROM users
 	WHERE username = $1	
 	`
@@ -78,6 +93,7 @@ func (u *User) GetUserByUsername(tx *sql.Tx, ctx context.Context, username strin
 		&u.CreatedAt,
 		&u.UpdatedAt,
 		&u.DeletedAt,
+		&u.PasswordHash,
 	)
 }
 
