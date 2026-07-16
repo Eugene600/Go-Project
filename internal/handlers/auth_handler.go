@@ -133,11 +133,13 @@ func SignUpUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message":       "User Created Successfully",
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-	})
+	response := dtos.AuthResponse{
+		Message:      "User Created Successfully",
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+
+	c.JSON(http.StatusCreated, response)
 }
 
 func LoginUser(c *gin.Context) {
@@ -162,8 +164,6 @@ func LoginUser(c *gin.Context) {
 		})
 		return
 	}
-
-	defer tx.Rollback()
 
 	if err := user.GetUserByUsername(tx, c, reqData.UserName); err != nil {
 		log.Printf("Error retrieving user with username of %v: %v", reqData.UserName, err)
@@ -231,6 +231,8 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
+	defer tx.Rollback()
+
 	if err := tx.Commit(); err != nil {
 		log.Printf("An Error occured commiting create refresh token transaction, %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -239,9 +241,11 @@ func LoginUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message":       "Login Successful",
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-	})
+	response := dtos.AuthResponse{
+		Message:      "Login Successful",
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+
+	c.JSON(http.StatusOK, response)
 }

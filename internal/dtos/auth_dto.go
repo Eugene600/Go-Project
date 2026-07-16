@@ -12,6 +12,12 @@ type SignUserRequest struct {
 }
 
 type LoginRequest struct {
-	UserName    string    `json:"username" binding:"required"`
-	Password    string    `json:"password" binding:"required"`
+	UserName string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type AuthResponse struct {
+	Message      string `json:"message"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
