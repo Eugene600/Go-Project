@@ -47,17 +47,16 @@ func (r *RefreshToken) CreateRefreshToken(tx *sql.Tx, ctx context.Context) error
 	return nil
 }
 
-func (r *RefreshToken) DeleteRefreshToken(tx *sql.Tx, ctx context.Context) error {
+func DeleteRefreshToken(tx *sql.Tx, ctx context.Context, userId uuid.UUID) error {
 	query :=
 		`
-	DELETE FROM refresh_tokens WHERE token_hash = $1 OR user_id = $2
+	DELETE FROM refresh_tokens WHERE user_id = $1
 	`
 
 	_, err := tx.ExecContext(
 		ctx,
 		query,
-		r.TokenHash,
-		r.UserId,
+		userId,
 	)
 
 	if err != nil {
@@ -65,4 +64,27 @@ func (r *RefreshToken) DeleteRefreshToken(tx *sql.Tx, ctx context.Context) error
 	}
 
 	return nil
+}
+
+func (r *RefreshToken) GetRefreshTokenByUserId(tx *sql.Tx, ctx context.Context) error {
+	query :=
+		`
+	SELECT 
+		id,
+		user_id, 
+		token_hash,
+		expires_at,
+		issued_at
+	FROM refresh_tokens
+	WHERE user_id = $1
+		AND expires_at > NOW()
+	`
+
+	return tx.QueryRowContext(ctx, query, r.UserId).Scan(
+		&r.Id,
+		&r.UserId,
+		&r.TokenHash,
+		&r.ExpiresAt,
+		&r.IssuedAt,
+	)
 }

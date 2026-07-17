@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Eugene600/Go-Project/internal/handlers"
+	"github.com/Eugene600/Go-Project/internal/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,22 +14,27 @@ func SetRoutes() http.Handler {
 	router.GET("/ping", handlers.Ping)
 
 	//AUTH
-	router.POST("/auth/signup", handlers.SignUpUser)
+	auth := router.Group("/auth")
 
-	router.POST("/auth/login", handlers.LoginUser)
+	auth.POST("/signup", handlers.SignUpUser)
+
+	auth.POST("/login", handlers.LoginUser)
 
 	// USERS
-	router.GET("/users/search", handlers.GetUserByUsername)
+	users := router.Group("/users")
+	users.Use(middlewares.AuthMiddleware())
 
-	router.GET("/users", handlers.GetAllUsers)
+	users.GET("/search", handlers.GetUserByUsername)
 
-	router.PUT("/users/:id", handlers.UpdateUser)
+	users.GET("", handlers.GetAllUsers)
 
-	router.DELETE("/users/:id", handlers.DeleteUser)
+	users.PUT("/:id", handlers.UpdateUser)
 
-	router.PUT("/users/:id/recover", handlers.RecoverDeletedUser)
+	users.DELETE("/:id", handlers.DeleteUser)
 
-	router.GET("/users/deleted", handlers.GetDeletedUsers)
+	users.PUT("/:id/recover", handlers.RecoverDeletedUser)
+
+	users.GET("/deleted", handlers.GetDeletedUsers)
 
 	return router
 }
