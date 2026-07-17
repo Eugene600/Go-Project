@@ -80,7 +80,7 @@ func (u *User) GetUserByUsername(tx *sql.Tx, ctx context.Context, username strin
 		deleted_at,
 		password_hash
 	FROM users
-	WHERE username = $1	
+	WHERE username = $1	AND deleted_at IS NULL
 	`
 
 	return tx.QueryRowContext(ctx, query, username).Scan(

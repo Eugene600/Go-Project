@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/Eugene600/Go-Project/internal/config"
+	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -63,6 +64,21 @@ func GetUserIdFromToken(token *jwt.Token) (uuid.UUID, error) {
 
 	if err != nil {
 		return uuid.Nil, err
+	}
+
+	return userId, nil
+}
+
+//this is a utility function for getting user id from context's middleware
+func GetUserIdFromContext(c *gin.Context) (uuid.UUID, error) {
+	value, exists := c.Get("userId")
+	if !exists {
+		return uuid.Nil, errors.New("User id not found in context")
+	}
+
+	userId, ok := value.(uuid.UUID)
+	if !ok {
+		return uuid.Nil, errors.New("invalid user id in context")
 	}
 
 	return userId, nil

@@ -28,9 +28,9 @@ func SetRoutes() http.Handler {
 
 	users.GET("", handlers.GetAllUsers)
 
-	users.PUT("/:id", handlers.UpdateUser)
+	users.PUT("", handlers.UpdateUser)
 
-	users.DELETE("/:id", handlers.DeleteUser)
+	users.DELETE("", handlers.DeleteUser)
 
 	users.PUT("/:id/recover", handlers.RecoverDeletedUser)
 

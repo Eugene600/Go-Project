@@ -9,6 +9,7 @@ import (
 	"github.com/Eugene600/Go-Project/internal/database"
 	"github.com/Eugene600/Go-Project/internal/dtos"
 	"github.com/Eugene600/Go-Project/internal/models"
+	"github.com/Eugene600/Go-Project/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -94,11 +95,12 @@ func UpdateUser(c *gin.Context) {
 		pgErr   *pgconn.PgError
 	)
 
-	id, err := uuid.FromString(c.Param("id"))
+	userId, err := utils.GetUserIdFromContext(c)
+
 	if err != nil {
-		log.Printf("Error while updating user: Invalid user id")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user id.",
+		log.Printf("Error while getting user id from context: %s", err)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
 		})
 		return
 	}
@@ -113,7 +115,7 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	user := models.User{
-		Id:          id,
+		Id:          userId,
 		FirstName:   reqData.FirstName,
 		LastName:    reqData.LastName,
 		DateOfBirth: reqData.DateOfBirth,
@@ -187,10 +189,12 @@ func UpdateUser(c *gin.Context) {
 }
 
 func DeleteUser(c *gin.Context) {
-	id, err := uuid.FromString(c.Param("id"))
+	userId, err := utils.GetUserIdFromContext(c)
+
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user id.",
+		log.Printf("Error while getting user id from context: %s", err)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
 		})
 		return
 	}
@@ -207,7 +211,7 @@ func DeleteUser(c *gin.Context) {
 
 	defer tx.Rollback()
 
-	if err := models.DeleteUser(tx, c, id); err != nil {
+	if err := models.DeleteUser(tx, c, userId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Println("User not found when deleting user.")
 			c.JSON(http.StatusNotFound, gin.H{
